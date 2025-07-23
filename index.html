@@ -1,18 +1,17 @@
-&lt;!DOCTYPE html&gt;
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Simple Leaflet Map with Drawing</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  &lt;!-- Leaflet CSS --&gt;
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 
-  &lt;!-- Leaflet Draw CSS --&gt;
+  <!-- Leaflet Draw CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.css"/>
 
   <style>
-    /* Layout styling */
     body, html {
       margin: 0;
       padding: 0;
@@ -22,8 +21,6 @@
       flex-direction: column;
       height: 100vh;
     }
-
-    /* Controls container styling */
     #controls {
       padding: 15px;
       background: #f8f8f8;
@@ -59,14 +56,10 @@
     #submitRequest:hover {
       background-color: #0056b3;
     }
-
-    /* Map fills remaining vertical space */
     #map {
       flex-grow: 1;
       width: 100vw;
     }
-
-    /* Scan type buttons styling */
     #scanTypeButtons {
       margin-bottom: 15px;
     }
@@ -83,11 +76,9 @@
       margin-bottom: 8px;
       user-select: none;
     }
-
     .scanTypeBtn:hover {
       background-color: #e6f0ff;
     }
-
     .scanTypeBtn.selected {
       background-color: #007bff;
       color: white;
@@ -96,7 +87,6 @@
 </head>
 <body>
 
-  &lt;!-- User input controls --&gt;
   <div id="controls">
     <label>Choose Drone Scan Type:</label>
     <div id="scanTypeButtons">
@@ -114,29 +104,24 @@
     <button id="submitRequest">Submit Scan Request</button>
   </div>
 
-  &lt;!-- Leaflet map container --&gt;
   <div id="map"></div>
 
-  &lt;!-- Leaflet JS --&gt;
+  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
-  &lt;!-- Leaflet Draw JS --&gt;
+  <!-- Leaflet Draw JS -->
   <script src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 
   <script>
-    // Initialize map and set view
     const map = L.map('map').setView([40.73061, -73.935242], 13);
 
-    // Add OpenStreetMap tile layer
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // FeatureGroup to store drawn layers
     const drawnItems = new L.FeatureGroup();
     map.addLayer(drawnItems);
 
-    // Initialize the draw control and pass the FeatureGroup of editable layers
     const drawControl = new L.Control.Draw({
       edit: {
         featureGroup: drawnItems,
@@ -153,52 +138,52 @@
     });
     map.addControl(drawControl);
 
-    // Variable to store GeoJSON of the last drawn polygon
     let drawnAreaGeoJSON = null;
 
-    // Event listener for when a new shape is created
+    // When a new shape is created
     map.on(L.Draw.Event.CREATED, function (event) {
-  const layer = event.layer;
+      const layer = event.layer;
+      drawnItems.clearLayers();
+      drawnItems.addLayer(layer);
+      drawnAreaGeoJSON = layer.toGeoJSON();
 
-  drawnItems.clearLayers();
-  drawnItems.addLayer(layer);
-  drawnAreaGeoJSON = layer.toGeoJSON();
+      // Send to Wix parent
+      window.parent.postMessage({
+        type: "geojson",
+        data: drawnAreaGeoJSON
+      }, "*");
 
-  // 👉 Send the drawn GeoJSON back to the parent Wix iframe
-  window.parent.postMessage({
-    type: "geoJson",
-    geoJson: drawnAreaGeoJSON
-  }, "*");
+      console.log("✅ Sent GeoJSON to Wix:", drawnAreaGeoJSON);
+      alert("Polygon drawn! GeoJSON sent to Wix.");
+    });
 
-  console.log('✅ Sent GeoJSON to Wix:', drawnAreaGeoJSON);
-  alert('Polygon drawn! Coordinates sent to Wix.');
-});
-
-    // Event listener for edits (if editing is used)
+    // When edited
     map.on(L.Draw.Event.EDITED, function (event) {
       event.layers.eachLayer(function (layer) {
         drawnAreaGeoJSON = layer.toGeoJSON();
-        console.log('Edited polygon GeoJSON:', drawnAreaGeoJSON);
+
+        window.parent.postMessage({
+          type: "geojson",
+          data: drawnAreaGeoJSON
+        }, "*");
+
+        console.log("📝 Edited polygon GeoJSON sent to Wix:", drawnAreaGeoJSON);
       });
     });
 
-    // Handle scan type button selection
+    // Scan type buttons
     let selectedScanType = null;
     const scanButtons = document.querySelectorAll('.scanTypeBtn');
 
     scanButtons.forEach(button => {
       button.addEventListener('click', () => {
-        // Remove 'selected' class from all buttons
         scanButtons.forEach(btn => btn.classList.remove('selected'));
-        // Add 'selected' class to clicked button
         button.classList.add('selected');
-        // Store selected scan type from data attribute
         selectedScanType = button.getAttribute('data-scan');
         console.log('Selected scan type:', selectedScanType);
       });
     });
 
-    // Submit button handler
     document.getElementById('submitRequest').addEventListener('click', function () {
       const instructions = document.getElementById('instructions').value;
 
@@ -220,8 +205,6 @@
 
       console.log('Scan Request Data:', scanRequest);
       alert('Your scan request has been submitted! Check the console for details.');
-
-      // TODO: Replace alert and console.log with sending data to backend or API
     });
   </script>
 </body>
