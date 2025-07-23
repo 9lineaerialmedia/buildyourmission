@@ -7,19 +7,17 @@
 
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-
   <!-- Leaflet Draw CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.css"/>
 
   <style>
-    body, html {
+    html, body {
       margin: 0;
       padding: 0;
       height: 100%;
       font-family: Arial, sans-serif;
       display: flex;
       flex-direction: column;
-      height: 100vh;
     }
     #controls {
       padding: 15px;
@@ -108,7 +106,6 @@
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-
   <!-- Leaflet Draw JS -->
   <script src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 
@@ -140,38 +137,39 @@
 
     let drawnAreaGeoJSON = null;
 
-    // When a new shape is created
+    // 🎯 FUNCTION TO SEND TO WIX
+    function sendGeoJSONToWix(geojson) {
+      parent.postMessage(
+        {
+          type: "geojson",
+          geojson: geojson
+        },
+        "*"
+      );
+      console.log("✅ Sent GeoJSON to Wix:", geojson);
+    }
+
+    // 🖊️ When a new shape is created
     map.on(L.Draw.Event.CREATED, function (event) {
       const layer = event.layer;
       drawnItems.clearLayers();
       drawnItems.addLayer(layer);
+
       drawnAreaGeoJSON = layer.toGeoJSON();
+      sendGeoJSONToWix(drawnAreaGeoJSON);
 
-      // Send to Wix parent
-      window.parent.postMessage({
-        type: "geojson",
-        data: drawnAreaGeoJSON
-      }, "*");
-
-      console.log("✅ Sent GeoJSON to Wix:", drawnAreaGeoJSON);
       alert("Polygon drawn! GeoJSON sent to Wix.");
     });
 
-    // When edited
+    // ✏️ When shape is edited
     map.on(L.Draw.Event.EDITED, function (event) {
       event.layers.eachLayer(function (layer) {
         drawnAreaGeoJSON = layer.toGeoJSON();
-
-        window.parent.postMessage({
-          type: "geojson",
-          data: drawnAreaGeoJSON
-        }, "*");
-
-        console.log("📝 Edited polygon GeoJSON sent to Wix:", drawnAreaGeoJSON);
+        sendGeoJSONToWix(drawnAreaGeoJSON);
       });
     });
 
-    // Scan type buttons
+    // 📌 Scan type buttons
     let selectedScanType = null;
     const scanButtons = document.querySelectorAll('.scanTypeBtn');
 
@@ -184,6 +182,7 @@
       });
     });
 
+    // 📨 Submit scan request
     document.getElementById('submitRequest').addEventListener('click', function () {
       const instructions = document.getElementById('instructions').value;
 
@@ -203,7 +202,7 @@
         areaGeoJSON: drawnAreaGeoJSON
       };
 
-      console.log('Scan Request Data:', scanRequest);
+      console.log('📦 Scan Request Data:', scanRequest);
       alert('Your scan request has been submitted! Check the console for details.');
     });
   </script>
