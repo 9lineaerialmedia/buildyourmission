@@ -1,210 +1,88 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <script src="mapEvents.js"></script>
-  <meta charset="UTF-8" />
-  <title>Simple Leaflet Map with Drawing</title>
+  <meta charset="utf-8" />
+  <title>Draw Mission Map</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <!-- Leaflet Draw CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.css"/>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"
+  />
 
   <style>
-    html, body {
+    html,
+    body {
       margin: 0;
       padding: 0;
       height: 100%;
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
     }
-    #controls {
-      padding: 15px;
-      background: #f8f8f8;
-      border-bottom: 1px solid #ccc;
-    }
-    #controls label {
-      font-weight: bold;
-      display: block;
-      margin-bottom: 5px;
-    }
-    #instructions {
-      width: 100%;
-      max-width: 600px;
-      resize: vertical;
-      margin-top: 5px;
-      font-family: Arial, sans-serif;
-      font-size: 14px;
-      padding: 5px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      box-sizing: border-box;
-    }
-    #submitRequest {
-      margin-top: 15px;
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 4px;
-    }
-    #submitRequest:hover {
-      background-color: #0056b3;
-    }
+
     #map {
-      flex-grow: 1;
-      width: 100vw;
-    }
-    #scanTypeButtons {
-      margin-bottom: 15px;
-    }
-    .scanTypeBtn {
-      padding: 8px 14px;
-      font-size: 14px;
-      cursor: pointer;
-      border: 1px solid #007bff;
-      background-color: white;
-      color: #007bff;
-      border-radius: 4px;
-      transition: background-color 0.3s ease;
-      margin-right: 8px;
-      margin-bottom: 8px;
-      user-select: none;
-    }
-    .scanTypeBtn:hover {
-      background-color: #e6f0ff;
-    }
-    .scanTypeBtn.selected {
-      background-color: #007bff;
-      color: white;
+      width: 100%;
+      height: 100%;
     }
   </style>
 </head>
 <body>
-
-  <div id="controls">
-    <label>Choose Drone Scan Type:</label>
-    <div id="scanTypeButtons">
-      <button type="button" class="scanTypeBtn" data-scan="2dMap">2D Map</button>
-      <button type="button" class="scanTypeBtn" data-scan="3dVirtualMap">3D Virtual Map</button>
-      <button type="button" class="scanTypeBtn" data-scan="liDARAreaScan">LiDAR Area Scan</button>
-      <button type="button" class="scanTypeBtn" data-scan="realEstatePhotosVideos">Real Estate Aerial Photos/Videos</button>
-      <button type="button" class="scanTypeBtn" data-scan="pavementConditionIndex">Pavement Condition Index</button>
-      <button type="button" class="scanTypeBtn" data-scan="socialMediaCommercialSite">Social Media Commercial Site</button>
-    </div>
-
-    <label for="instructions">Additional Instructions:</label>
-    <textarea id="instructions" name="instructions" rows="5" placeholder="Enter any special instructions here..."></textarea>
-
-    <button id="submitRequest">Submit Scan Request</button>
-  </div>
-
   <div id="map"></div>
 
   <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <!-- Leaflet Draw JS -->
-  <script src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 
+  <!-- Initialize map and draw controls -->
   <script>
-    const map = L.map('map').setView([40.73061, -73.935242], 13);
+    // Initialize the map
+    const map = L.map("map").setView([39.5, -98.35], 4); // Center on US
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Add OpenStreetMap tile layer
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
+    // Add draw control
     const drawnItems = new L.FeatureGroup();
     map.addLayer(drawnItems);
 
     const drawControl = new L.Control.Draw({
       edit: {
-        featureGroup: drawnItems,
-        remove: true
+        featureGroup: drawnItems
       },
       draw: {
         polygon: true,
-        polyline: false,
-        rectangle: false,
+        rectangle: true,
         circle: false,
         marker: false,
+        polyline: false,
         circlemarker: false
       }
     });
+
     map.addControl(drawControl);
 
-    let drawnAreaGeoJSON = null;
+    // Listen for draw created event and store layer
+    map.on(L.Draw.Event.CREATED, function (e) {
+      const layer = e.layer;
+      drawnItems.addLayer(layer);
 
-    // 🎯 FUNCTION TO SEND TO WIX
-    function sendGeoJSONToWix(geojson) {
-      parent.postMessage(
+      const geojson = layer.toGeoJSON();
+      console.log("🌍 Sending GeoJSON to Wix:", geojson);
+
+      window.parent.postMessage(
         {
           type: "geojson",
           geojson: geojson
         },
         "*"
       );
-      console.log("✅ Sent GeoJSON to Wix:", geojson);
-    }
-
-    // 🖊️ When a new shape is created
-    map.on(L.Draw.Event.CREATED, function (event) {
-      const layer = event.layer;
-      drawnItems.clearLayers();
-      drawnItems.addLayer(layer);
-
-      drawnAreaGeoJSON = layer.toGeoJSON();
-      sendGeoJSONToWix(drawnAreaGeoJSON);
 
       alert("Polygon drawn! GeoJSON sent to Wix.");
-    });
-
-    // ✏️ When shape is edited
-    map.on(L.Draw.Event.EDITED, function (event) {
-      event.layers.eachLayer(function (layer) {
-        drawnAreaGeoJSON = layer.toGeoJSON();
-        sendGeoJSONToWix(drawnAreaGeoJSON);
-      });
-    });
-
-    // 📌 Scan type buttons
-    let selectedScanType = null;
-    const scanButtons = document.querySelectorAll('.scanTypeBtn');
-
-    scanButtons.forEach(button => {
-      button.addEventListener('click', () => {
-        scanButtons.forEach(btn => btn.classList.remove('selected'));
-        button.classList.add('selected');
-        selectedScanType = button.getAttribute('data-scan');
-        console.log('Selected scan type:', selectedScanType);
-      });
-    });
-
-    // 📨 Submit scan request
-    document.getElementById('submitRequest').addEventListener('click', function () {
-      const instructions = document.getElementById('instructions').value;
-
-      if (!selectedScanType) {
-        alert('Please select a drone scan type by clicking one of the buttons.');
-        return;
-      }
-
-      if (!drawnAreaGeoJSON) {
-        alert('Please draw an area to scan on the map before submitting.');
-        return;
-      }
-
-      const scanRequest = {
-        scanType: selectedScanType,
-        instructions: instructions,
-        areaGeoJSON: drawnAreaGeoJSON
-      };
-
-      console.log('📦 Scan Request Data:', scanRequest);
-      alert('Your scan request has been submitted! Check the console for details.');
     });
   </script>
 </body>
