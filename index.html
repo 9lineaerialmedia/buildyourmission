@@ -102,10 +102,10 @@
   <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 
   <script>
-    // Initialize EmailJS
-    emailjs.init("YOUR_USER_ID"); // Replace with your actual EmailJS user ID
+    // ✅ Initialize EmailJS with your public key
+    emailjs.init("FoBVHn7QJQrbQgdHB");
 
-    // Setup map
+    // 🗺️ Initialize the map
     const map = L.map('map').setView([39.5, -98.35], 4);
 
     const street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -118,7 +118,7 @@
 
     L.control.layers({ "Street": street, "Satellite": satellite }).addTo(map);
 
-    // Geocoder
+    // 🔍 Add address search bar
     L.Control.geocoder({
       defaultMarkGeocode: true
     }).addTo(map);
@@ -149,7 +149,7 @@
       document.getElementById("coordinates").value = drawnGeoJSON;
     });
 
-    // Submit Form
+    // 📬 Form submission
     document.getElementById("missionForm").addEventListener("submit", function (e) {
       e.preventDefault();
 
@@ -158,7 +158,7 @@
         return;
       }
 
-      emailjs.sendForm("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", this)
+      emailjs.sendForm("service_kg9c8v7", "template_t9vtgpl", this)
         .then(() => {
           alert("🎯 Your mission has been successfully submitted!");
           this.reset();
@@ -167,7 +167,7 @@
         })
         .catch((error) => {
           console.error("EmailJS error:", error);
-          alert("Something went wrong. Please try again.");
+          alert("❌ Something went wrong. Please try again.");
         });
     });
   </script>
