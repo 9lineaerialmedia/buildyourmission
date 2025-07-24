@@ -1,88 +1,174 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Draw Mission Map</title>
+  <meta charset="UTF-8" />
+  <title>Mission Builder</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"
-  />
+  
+  <!-- Leaflet & Draw CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
 
   <style>
-    html,
     body {
       margin: 0;
-      padding: 0;
-      height: 100%;
+      font-family: Arial, sans-serif;
+    }
+
+    #formContainer {
+      padding: 15px;
+      background: #f4f4f4;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+
+    #submitRequest {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 4px;
     }
 
     #map {
+      height: 500px;
       width: 100%;
-      height: 100%;
     }
   </style>
 </head>
 <body>
+
+  <div id="formContainer">
+    <h2>Submit Your Mission</h2>
+
+    <form id="missionForm">
+      <label>First Name:</label>
+      <input type="text" name="first_name" required />
+
+      <label>Last Name:</label>
+      <input type="text" name="last_name" required />
+
+      <label>Company:</label>
+      <input type="text" name="company" required />
+
+      <label>Email:</label>
+      <input type="email" name="email" required />
+
+      <label>Phone Number:</label>
+      <input type="tel" name="phone" required />
+
+      <label>Scan Type:</label>
+      <select name="scan_type" required>
+        <option value="">Select One</option>
+        <option value="2D Map">2D Map</option>
+        <option value="3D Virtual Map">3D Virtual Map</option>
+        <option value="LiDAR Area Scan">LiDAR Area Scan</option>
+        <option value="Real Estate Aerial Photos/Videos">Real Estate Aerial Photos/Videos</option>
+        <option value="Pavement Condition Index">Pavement Condition Index</option>
+        <option value="Social Media Commercial Site">Social Media Commercial Site</option>
+      </select>
+
+      <label>Special Instructions:</label>
+      <textarea name="instructions" rows="4"></textarea>
+
+      <!-- Hidden field to hold coordinates -->
+      <input type="hidden" name="coordinates" id="coordinates" required />
+
+      <button type="submit" id="submitRequest">Submit Scan Request</button>
+    </form>
+  </div>
+
   <div id="map"></div>
 
-  <!-- Leaflet JS -->
+  <!-- Scripts -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 
-  <!-- Initialize map and draw controls -->
   <script>
-    // Initialize the map
-    const map = L.map("map").setView([39.5, -98.35], 4); // Center on US
+    // Initialize EmailJS
+    emailjs.init("YOUR_USER_ID"); // Replace with your actual EmailJS user ID
 
-    // Add OpenStreetMap tile layer
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    // Setup map
+    const map = L.map('map').setView([39.5, -98.35], 4);
+
+    const street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // Add draw control
+    const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles &copy; Esri'
+    });
+
+    L.control.layers({ "Street": street, "Satellite": satellite }).addTo(map);
+
+    // Geocoder
+    L.Control.geocoder({
+      defaultMarkGeocode: true
+    }).addTo(map);
+
     const drawnItems = new L.FeatureGroup();
     map.addLayer(drawnItems);
 
     const drawControl = new L.Control.Draw({
-      edit: {
-        featureGroup: drawnItems
-      },
+      edit: { featureGroup: drawnItems },
       draw: {
         polygon: true,
-        rectangle: true,
+        polyline: false,
+        rectangle: false,
         circle: false,
         marker: false,
-        polyline: false,
         circlemarker: false
       }
     });
-
     map.addControl(drawControl);
 
-    // Listen for draw created event and store layer
+    let drawnGeoJSON = null;
+
     map.on(L.Draw.Event.CREATED, function (e) {
+      drawnItems.clearLayers();
       const layer = e.layer;
       drawnItems.addLayer(layer);
+      drawnGeoJSON = JSON.stringify(layer.toGeoJSON());
+      document.getElementById("coordinates").value = drawnGeoJSON;
+    });
 
-      const geojson = layer.toGeoJSON();
-      console.log("🌍 Sending GeoJSON to Wix:", geojson);
+    // Submit Form
+    document.getElementById("missionForm").addEventListener("submit", function (e) {
+      e.preventDefault();
 
-      window.parent.postMessage(
-        {
-          type: "geojson",
-          geojson: geojson
-        },
-        "*"
-      );
+      if (!drawnGeoJSON) {
+        alert("Please draw an area on the map before submitting.");
+        return;
+      }
 
-      alert("Polygon drawn! GeoJSON sent to Wix.");
+      emailjs.sendForm("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", this)
+        .then(() => {
+          alert("🎯 Your mission has been successfully submitted!");
+          this.reset();
+          document.getElementById("coordinates").value = "";
+          drawnItems.clearLayers();
+        })
+        .catch((error) => {
+          console.error("EmailJS error:", error);
+          alert("Something went wrong. Please try again.");
+        });
     });
   </script>
 </body>
