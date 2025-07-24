@@ -105,6 +105,16 @@
     // ✅ Initialize EmailJS with your public key
     emailjs.init("FoBVHn7QJQrbQgdHB");
 
+    // ✅ Listen for a trigger from Wix to submit the form
+window.addEventListener("message", function(event) {
+  if (event.data === "triggerFormSubmit") {
+    const form = document.getElementById("missionForm");
+    if (form) {
+      form.requestSubmit(); // triggers submit + validation
+    }
+  }
+});
+
     // 🗺️ Initialize the map
     const map = L.map('map').setView([39.5, -98.35], 4);
 
