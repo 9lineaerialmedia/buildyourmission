@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>Mission Builder</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
+
   <!-- Leaflet & Draw CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.css"/>
@@ -35,19 +35,17 @@
       border: 1px solid #ccc;
     }
 
-    #submitRequest {
-      background-color: #007bff;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-      border-radius: 4px;
-    }
-
     #map {
       height: 500px;
       width: 100%;
+    }
+
+    #successMessage {
+      display: none;
+      margin-top: 15px;
+      color: green;
+      font-weight: bold;
+      font-size: 18px;
     }
   </style>
 </head>
@@ -89,9 +87,10 @@
       <!-- Hidden field to hold coordinates -->
       <input type="hidden" name="coordinates" id="coordinates" required />
 
-<div id="successMessage" style="display: none; margin-top: 10px; color: green; font-weight: bold; font-size: 18px;">
-  🎯 Your mission has been successfully submitted!
-</div>    
+      <!-- Success message placeholder -->
+      <div id="successMessage">
+        🎯 Your mission has been successfully submitted!
+      </div>
     </form>
   </div>
 
@@ -108,14 +107,14 @@
     emailjs.init("FoBVHn7QJQrbQgdHB");
 
     // ✅ Listen for a trigger from Wix to submit the form
-window.addEventListener("message", function(event) {
-  if (event.data === "triggerFormSubmit") {
-    const form = document.getElementById("missionForm");
-    if (form) {
-      form.requestSubmit(); // triggers submit + validation
-    }
-  }
-});
+    window.addEventListener("message", function(event) {
+      if (event.data === "triggerFormSubmit") {
+        const form = document.getElementById("missionForm");
+        if (form) {
+          form.requestSubmit(); // triggers submit + validation
+        }
+      }
+    });
 
     // 🗺️ Initialize the map
     const map = L.map('map').setView([39.5, -98.35], 4);
@@ -172,10 +171,13 @@ window.addEventListener("message", function(event) {
 
       emailjs.sendForm("service_kg9c8v7", "template_t9vtgpl", this)
         .then(() => {
+          // ✅ Show success message
           document.getElementById("successMessage").style.display = "block";
-setTimeout(() => {
-  document.getElementById("successMessage").style.display = "none";
-}, 5000);
+          setTimeout(() => {
+            document.getElementById("successMessage").style.display = "none";
+          }, 5000);
+
+          // Reset form and clear map
           this.reset();
           document.getElementById("coordinates").value = "";
           drawnItems.clearLayers();
