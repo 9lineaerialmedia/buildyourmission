@@ -173,7 +173,10 @@ window.addEventListener("message", function(event) {
 
       emailjs.sendForm("service_kg9c8v7", "template_t9vtgpl", this)
         .then(() => {
-          alert("🎯 Your mission has been successfully submitted!");
+          document.getElementById("successMessage").style.display = "block";
+setTimeout(() => {
+  document.getElementById("successMessage").style.display = "none";
+}, 5000);
           this.reset();
           document.getElementById("coordinates").value = "";
           drawnItems.clearLayers();
