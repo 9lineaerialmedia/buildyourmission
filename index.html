@@ -87,10 +87,8 @@
       <!-- Hidden field to hold coordinates -->
       <input type="hidden" name="coordinates" id="coordinates" required />
 
-      <!-- Success message placeholder -->
-      <div id="successMessage">
-        🎯 Your mission has been successfully submitted!
-      </div>
+      <!-- Success message -->
+      <div id="successMessage">🎯 Your mission has been successfully submitted!</div>
     </form>
   </div>
 
@@ -103,22 +101,20 @@
   <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 
   <script>
-    // ✅ Initialize EmailJS with your public key
+    // ✅ Initialize EmailJS
     emailjs.init("FoBVHn7QJQrbQgdHB");
 
-    // ✅ Listen for a trigger from Wix to submit the form
+    // ✅ Listen for external "submit" trigger
     window.addEventListener("message", function(event) {
-  if (event.data === "triggerFormSubmit") {
-    console.log("📩 Got the trigger from Wix!");
+      if (event.data === "triggerFormSubmit") {
+        const form = document.getElementById("missionForm");
+        if (form) {
+          form.requestSubmit();
+        }
+      }
+    });
 
-    const form = document.getElementById("missionForm");
-    if (form) {
-      form.requestSubmit(); // This makes the form submit
-    }
-  }
-});
-
-    // 🗺️ Initialize the map
+    // 🗺️ Initialize map
     const map = L.map('map').setView([39.5, -98.35], 4);
 
     const street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -131,10 +127,8 @@
 
     L.control.layers({ "Street": street, "Satellite": satellite }).addTo(map);
 
-    // 🔍 Add address search bar
-    L.Control.geocoder({
-      defaultMarkGeocode: true
-    }).addTo(map);
+    // 🔍 Add search bar
+    L.Control.geocoder({ defaultMarkGeocode: true }).addTo(map);
 
     const drawnItems = new L.FeatureGroup();
     map.addLayer(drawnItems);
@@ -162,7 +156,7 @@
       document.getElementById("coordinates").value = drawnGeoJSON;
     });
 
-    // 📬 Form submission
+    // 📬 Handle form submission
     document.getElementById("missionForm").addEventListener("submit", function (e) {
       e.preventDefault();
 
@@ -173,13 +167,16 @@
 
       emailjs.sendForm("service_kg9c8v7", "template_t9vtgpl", this)
         .then(() => {
+          // ✅ Notify Wix that submission was successful
+          window.parent.postMessage("formSubmissionSuccess", "*");
+
           // ✅ Show success message
           document.getElementById("successMessage").style.display = "block";
           setTimeout(() => {
             document.getElementById("successMessage").style.display = "none";
           }, 5000);
 
-          // Reset form and clear map
+          // ✅ Reset form + clear map
           this.reset();
           document.getElementById("coordinates").value = "";
           drawnItems.clearLayers();
