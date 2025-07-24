@@ -104,17 +104,6 @@
     // ✅ Initialize EmailJS
     emailjs.init("FoBVHn7QJQrbQgdHB");
 
-    // ✅ Listen for external "submit" trigger
-    window.addEventListener("message", function(event) {
-      if (event.data === "triggerFormSubmit") {
-        const form = document.getElementById("missionForm");
-        if (form) {
-          form.requestSubmit();
-        }
-      }
-    });
-
-    // 🗺️ Initialize map
     const map = L.map('map').setView([39.5, -98.35], 4);
 
     const street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -127,7 +116,6 @@
 
     L.control.layers({ "Street": street, "Satellite": satellite }).addTo(map);
 
-    // 🔍 Add search bar
     L.Control.geocoder({ defaultMarkGeocode: true }).addTo(map);
 
     const drawnItems = new L.FeatureGroup();
@@ -156,7 +144,7 @@
       document.getElementById("coordinates").value = drawnGeoJSON;
     });
 
-    // 📬 Handle form submission
+    // 📬 Submission logic
     document.getElementById("missionForm").addEventListener("submit", function (e) {
       e.preventDefault();
 
@@ -167,24 +155,32 @@
 
       emailjs.sendForm("service_kg9c8v7", "template_t9vtgpl", this)
         .then(() => {
-          // ✅ Notify Wix that submission was successful
-          window.parent.postMessage("formSubmissionSuccess", "*");
-
           // ✅ Show success message
           document.getElementById("successMessage").style.display = "block";
+
+          // Send message back to Wix
+          window.parent.postMessage("formSubmissionSuccess", "*");
+
           setTimeout(() => {
             document.getElementById("successMessage").style.display = "none";
           }, 5000);
 
-          // ✅ Reset form + clear map
+          // Reset form & map
           this.reset();
-          document.getElementById("coordinates").value = "";
           drawnItems.clearLayers();
+          drawnGeoJSON = null;
         })
         .catch((error) => {
           console.error("EmailJS error:", error);
           alert("❌ Something went wrong. Please try again.");
         });
+    });
+
+    // ✅ Accept trigger from Wix page
+    window.addEventListener("message", function(event) {
+      if (event.data === "triggerFormSubmit") {
+        document.getElementById("missionForm").requestSubmit();
+      }
     });
   </script>
 </body>
