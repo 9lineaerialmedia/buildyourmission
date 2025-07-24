@@ -4,12 +4,9 @@
   <meta charset="UTF-8" />
   <title>Mission Builder</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- Leaflet & Draw CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.css"/>
   <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
-
   <style>
     body {
       margin: 0;
@@ -38,14 +35,6 @@
     #map {
       height: 500px;
       width: 100%;
-    }
-
-    #successMessage {
-      display: none;
-      margin-top: 15px;
-      color: green;
-      font-weight: bold;
-      font-size: 18px;
     }
   </style>
 </head>
@@ -86,22 +75,17 @@
 
       <!-- Hidden field to hold coordinates -->
       <input type="hidden" name="coordinates" id="coordinates" required />
-
-      <!-- Success message -->
-      <div id="successMessage">🎯 Your mission has been successfully submitted!</div>
     </form>
   </div>
 
   <div id="map"></div>
 
-  <!-- Scripts -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
   <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 
   <script>
-    // ✅ Initialize EmailJS
     emailjs.init("FoBVHn7QJQrbQgdHB");
 
     const map = L.map('map').setView([39.5, -98.35], 4);
@@ -144,7 +128,6 @@
       document.getElementById("coordinates").value = drawnGeoJSON;
     });
 
-    // 📬 Submission logic
     document.getElementById("missionForm").addEventListener("submit", function (e) {
       e.preventDefault();
 
@@ -155,20 +138,10 @@
 
       emailjs.sendForm("service_kg9c8v7", "template_t9vtgpl", this)
         .then(() => {
-          // ✅ Show success message
-          document.getElementById("successMessage").style.display = "block";
-
-          // Send message back to Wix
-          window.parent.postMessage("formSubmissionSuccess", "*");
-
-          setTimeout(() => {
-            document.getElementById("successMessage").style.display = "none";
-          }, 5000);
-
-          // Reset form & map
+          // Clear fields
           this.reset();
+          document.getElementById("coordinates").value = "";
           drawnItems.clearLayers();
-          drawnGeoJSON = null;
         })
         .catch((error) => {
           console.error("EmailJS error:", error);
@@ -176,10 +149,13 @@
         });
     });
 
-    // ✅ Accept trigger from Wix page
+    // Listen for message from Wix
     window.addEventListener("message", function(event) {
       if (event.data === "triggerFormSubmit") {
-        document.getElementById("missionForm").requestSubmit();
+        const form = document.getElementById("missionForm");
+        if (form) {
+          form.requestSubmit();
+        }
       }
     });
   </script>
